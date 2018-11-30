@@ -34,11 +34,12 @@ public class Auth {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response login(User user, @CookieParam("categorizeus") Cookie cookie) {
 		String cookieValue = cookie==null?UUID.randomUUID().toString():cookie.getValue();
+		
 		boolean validUser = userStore.establishUserSession(user, cookieValue);
 		if(!validUser) {
 			return Response.noContent().status(401).build();
 		}
-		ResponseBuilder response = Response.noContent().status(200);
+		ResponseBuilder response = Response.status(200).entity(user);
 		if(cookie==null) {
 			response.cookie(new NewCookie("categorizeus", cookieValue));
 		}
