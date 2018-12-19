@@ -17,6 +17,11 @@ public class NaiveAuthorizer implements Authorizer {
 		User user = userStore.getPrincipal(sessionKey);
 		String userName = user!=null?user.getUsername():null;
 		System.out.println("Current logged in user is " + userName);
+		return authorize(user, path, method);
+	}
+
+	@Override
+	public boolean authorize(User user, String path, String method) {
 		return true;
 	}
 
