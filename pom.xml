@@ -46,12 +46,12 @@
 			</plugin>
 		</plugins>
 	</build>
-	<!--Is this just in the wrong place or what? This is for synching versions
-		of AWS libs. <dependencyManagement> <dependencies> <dependency> <groupId>com.amazonaws</groupId>
-		<artifactId>aws-java-sdk-bom</artifactId> <version>1.11.65</version> <type>pom</type>
+	<!--Is this just in the wrong place or what? This is for synching versions 
+		of AWS libs. <dependencyManagement> <dependencies> <dependency> <groupId>com.amazonaws</groupId> 
+		<artifactId>aws-java-sdk-bom</artifactId> <version>1.11.65</version> <type>pom</type> 
 		<scope>import</scope> </dependency> </dependencies> </dependencyManagement> -->
 	<dependencies>
-    <dependency>
+		<dependency>
 			<groupId>us.categorize</groupId>
 			<artifactId>api</artifactId>
 			<version>0.1-SNAPSHOT</version>
