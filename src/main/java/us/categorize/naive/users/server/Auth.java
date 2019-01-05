@@ -65,6 +65,7 @@ public class Auth {
 		System.out.println("Error " + error);
 		System.out.println("Code " + code);
 		try {
+			//TODO I am a huge mess 
 			HttpPost httpPost = new HttpPost("https://www.googleapis.com/oauth2/v4/token");
 			List <NameValuePair> nvps = new ArrayList <NameValuePair>();
 			nvps.add(new BasicNameValuePair("client_id", googleClientId));
@@ -85,15 +86,29 @@ public class Auth {
 			String profile = EntityUtils.toString(profileResponse.getEntity());
 		    System.out.println(profile);
 		    ObjectNode profileNode = (ObjectNode) mapper.readTree(profile);
-		    User user = new User();
-		    user.setEmail(profileNode.get("email").asText());
-		    user.setUsername(profileNode.get("email").asText());
-		    user.setGivenName(profileNode.get("given_name").asText());
-		    user.setFamilyName(profileNode.get("family_name").asText());
-		    user.setName(profileNode.get("name").asText());
-		    user.setAuthorized(true);
-		    userStore.registerUser(user);
-			return Response.seeOther(new URI("http://localhost:8080")).build();
+		    String email = profileNode.get("email").asText();
+		    User user = userStore.getUserByUserName(email);
+		    if(user==null) {
+		    	user = new User();
+			    user.setEmail(email);
+			    user.setUsername(email);
+			    user.setGivenName(profileNode.get("given_name").asText());
+			    user.setFamilyName(profileNode.get("family_name").asText());
+			    user.setName(profileNode.get("name").asText());
+			    user.setAuthorized(true);
+			    userStore.registerUser(user);		    	
+		    }
+			String cookieValue = cookie==null?UUID.randomUUID().toString():cookie.getValue();
+			
+			boolean validSession = userStore.establishUserSession(user, cookieValue);
+			if(!validSession) {
+				return Response.noContent().status(401).build();
+			}
+			ResponseBuilder response = Response.seeOther(new URI("http://localhost:8080"));
+			if(cookie==null) {
+				response.cookie(new NewCookie("categorizeus", cookieValue));
+			}
+			return response.build();
 		} catch (URISyntaxException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -137,11 +152,11 @@ public class Auth {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response login(User user, @CookieParam("categorizeus") Cookie cookie) {
 		String cookieValue = cookie==null?UUID.randomUUID().toString():cookie.getValue();
-		
-		boolean validUser = userStore.establishUserSession(user, cookieValue);
+		boolean validUser = userStore.validateUser(user);
 		if(!validUser) {
 			return Response.noContent().status(401).build();
 		}
+		boolean validSession = userStore.establishUserSession(user, cookieValue);
 		ResponseBuilder response = Response.status(200).entity(user);
 		if(cookie==null) {
 			response.cookie(new NewCookie("categorizeus", cookieValue));
