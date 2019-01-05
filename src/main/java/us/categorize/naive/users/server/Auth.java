@@ -87,7 +87,11 @@ public class Auth {
 		    ObjectNode profileNode = (ObjectNode) mapper.readTree(profile);
 		    User user = new User();
 		    user.setEmail(profileNode.get("email").asText());
-		    user.setUsername(profileNode.get("given_name").asText());
+		    user.setUsername(profileNode.get("email").asText());
+		    user.setGivenName(profileNode.get("given_name").asText());
+		    user.setFamilyName(profileNode.get("family_name").asText());
+		    user.setName(profileNode.get("name").asText());
+		    user.setAuthorized(true);
 		    userStore.registerUser(user);
 			return Response.seeOther(new URI("http://localhost:8080")).build();
 		} catch (URISyntaxException e) {
