@@ -1,9 +1,12 @@
 package us.categorize.naive.users.server;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -11,7 +14,6 @@ import javax.ws.rs.CookieParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Cookie;
@@ -19,6 +21,21 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import us.categorize.Configuration;
 import us.categorize.api.UserStore;
@@ -28,11 +45,16 @@ import us.categorize.model.User;
 public class Auth {
 	protected UserStore userStore;
 	private String googleClientId, googleClientSecret;
+	private CloseableHttpClient client;
+	private static String userAgentString = "us.categorize.naive.auth";
+	private ObjectMapper mapper = new ObjectMapper();
 	
 	public Auth() {
 		this.userStore = Configuration.instance().getUserStore();
 		googleClientId = Configuration.instance().getGoogleClientId();
 		googleClientSecret = Configuration.instance().getGoogleClientSecret();
+		client = HttpClients.custom().setUserAgent(userAgentString).build();
+
 	}
 	
 	@GET
@@ -43,8 +65,38 @@ public class Auth {
 		System.out.println("Error " + error);
 		System.out.println("Code " + code);
 		try {
+			HttpPost httpPost = new HttpPost("https://www.googleapis.com/oauth2/v4/token");
+			List <NameValuePair> nvps = new ArrayList <NameValuePair>();
+			nvps.add(new BasicNameValuePair("client_id", googleClientId));
+			nvps.add(new BasicNameValuePair("client_secret", googleClientSecret));
+			nvps.add(new BasicNameValuePair("redirect_uri", "http://localhost:8080/v1/auth/oauthcb"));
+			nvps.add(new BasicNameValuePair("code", code));
+			nvps.add(new BasicNameValuePair("grant_type", "authorization_code"));
+			httpPost.setEntity(new UrlEncodedFormEntity(nvps));
+			CloseableHttpResponse response2 = client.execute(httpPost);
+		    HttpEntity entity = response2.getEntity();
+	    	ObjectNode node = (ObjectNode) mapper.readTree(entity.getContent());
+	    	String accessToken = node.get("access_token").asText();
+	    	System.out.println("Access Token read as " + accessToken);
+	    	HttpGet getProfile = new HttpGet("https://www.googleapis.com/oauth2/v2/userinfo");
+	    	getProfile.setHeader("Authorization", "Bearer " + accessToken);
+	    	getProfile.setHeader("Content-Type", "application/json");
+			CloseableHttpResponse profileResponse = client.execute(getProfile);
+			String profile = EntityUtils.toString(profileResponse.getEntity());
+		    System.out.println(profile);
+		    ObjectNode profileNode = (ObjectNode) mapper.readTree(profile);
+		    User user = new User();
+		    user.setEmail(profileNode.get("email").asText());
+		    user.setUsername(profileNode.get("given_name").asText());
+		    userStore.registerUser(user);
 			return Response.seeOther(new URI("http://localhost:8080")).build();
 		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
