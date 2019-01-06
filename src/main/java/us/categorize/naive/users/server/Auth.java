@@ -37,7 +37,7 @@ import org.apache.http.util.EntityUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import us.categorize.Configuration;
+import us.categorize.CategorizeUs;
 import us.categorize.api.UserStore;
 import us.categorize.model.User;
 
@@ -50,9 +50,9 @@ public class Auth {
 	private ObjectMapper mapper = new ObjectMapper();
 	
 	public Auth() {
-		this.userStore = Configuration.instance().getUserStore();
-		googleClientId = Configuration.instance().getGoogleClientId();
-		googleClientSecret = Configuration.instance().getGoogleClientSecret();
+		this.userStore = CategorizeUs.instance().getUserStore();
+		googleClientId = CategorizeUs.instance().getGoogleClientId();
+		googleClientSecret = CategorizeUs.instance().getGoogleClientSecret();
 		client = HttpClients.custom().setUserAgent(userAgentString).build();
 
 	}
