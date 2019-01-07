@@ -48,13 +48,14 @@ public class Auth {
 	private CloseableHttpClient client;
 	private static String userAgentString = "us.categorize.naive.auth";
 	private ObjectMapper mapper = new ObjectMapper();
+	private String host; 
 	
 	public Auth() {
 		this.userStore = CategorizeUs.instance().getUserStore();
 		googleClientId = CategorizeUs.instance().getGoogleClientId();
 		googleClientSecret = CategorizeUs.instance().getGoogleClientSecret();
 		client = HttpClients.custom().setUserAgent(userAgentString).build();
-
+		host = CategorizeUs.instance().getHost();
 	}
 	
 	@GET
@@ -70,7 +71,7 @@ public class Auth {
 			List <NameValuePair> nvps = new ArrayList <NameValuePair>();
 			nvps.add(new BasicNameValuePair("client_id", googleClientId));
 			nvps.add(new BasicNameValuePair("client_secret", googleClientSecret));
-			nvps.add(new BasicNameValuePair("redirect_uri", "http://localhost:8080/v1/auth/oauthcb"));
+			nvps.add(new BasicNameValuePair("redirect_uri", host + "/v1/auth/oauthcb"));
 			nvps.add(new BasicNameValuePair("code", code));
 			nvps.add(new BasicNameValuePair("grant_type", "authorization_code"));
 			httpPost.setEntity(new UrlEncodedFormEntity(nvps));
@@ -104,7 +105,7 @@ public class Auth {
 			if(!validSession) {
 				return Response.noContent().status(401).build();
 			}
-			ResponseBuilder response = Response.seeOther(new URI("http://localhost:8080"));
+			ResponseBuilder response = Response.seeOther(new URI(host));
 			if(cookie==null) {
 				response.cookie(new NewCookie("categorizeus", cookieValue));
 			}
@@ -135,7 +136,7 @@ public class Auth {
 
 		try {
 			String scope =  URLEncoder.encode("email profile openid", "UTF-8");
-			String callbackURI = URLEncoder.encode("http://localhost:8080/v1/auth/oauthcb", "UTF-8");
+			String callbackURI = URLEncoder.encode(host + "/v1/auth/oauthcb", "UTF-8");
 			String authURI = String.format(authURIPattern, scope, callbackURI, googleClientId);
 			System.out.println(authURI);
 			URI u = new URI(authURI);
